@@ -1,0 +1,61 @@
+version: "3.3"
+services:
+  app:
+    build:
+      args:
+        user: petko
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
+    image: parking
+    container_name: parking-app
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+    networks:
+      - parking
+
+  db:
+    image: mysql:5.7
+    container_name: parking-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    networks:
+      - parking
+
+  nginx:
+    image: nginx:1.17-alpine
+    container_name: parking-nginx
+    restart: unless-stopped
+    ports:
+      - 8000:80
+    volumes:
+      - ./:/var/www
+      - ./docker-compose/nginx:/etc/nginx/conf.d
+    networks:
+      - parking
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    container_name: phpmyadmin
+    depends_on:
+      - db
+    ports:
+      - "8001:80"
+    environment:
+      PMA_HOST: parking-db
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - parking
+
+networks:
+  parking:
+    driver: bridge
